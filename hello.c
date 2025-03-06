@@ -12,6 +12,8 @@
 #define SDL_MAIN_USE_CALLBACKS 1  /* use the callbacks instead of main() */
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keycode.h>
 
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
@@ -30,7 +32,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 /* This function runs when a new event (mouse input, keypresses, etc) occurs. */
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 {
-    if (event->type == SDL_EVENT_KEY_DOWN ||
+    if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_ESCAPE ||
         event->type == SDL_EVENT_QUIT) {
         return SDL_APP_SUCCESS;  /* end the program, reporting success to the OS. */
     }
@@ -40,23 +42,45 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
-    const char *message = "HAXX LABS";
+    const char *title = "HAXX LABS";
+    const char *test_message = "Press esc to quit";
+
     int w = 0, h = 0;
-    float x, y;
+    float x, y, x_m, y_m;
     const float scale = 4.0f;
 
-    /* Center the message and scale it up */
+
+    /* Center the title and scale it up */
     SDL_GetRenderOutputSize(renderer, &w, &h);
     SDL_SetRenderScale(renderer, scale, scale);
-    x = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(message)) / 2;
-    y = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) / 2;
+    x = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(title)) / 2;
+    y = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) / 3.5;
 
-    /* Draw the message */
+    x_m = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(test_message)) / 1.2;
+    y_m = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) / 1.2;
+
+    /* Draw the title */
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderDebugText(renderer, x, y, message);
+    SDL_RenderDebugText(renderer, x, y, title);
+    SDL_RenderDebugText(renderer, x_m, y_m, test_message);
     SDL_RenderPresent(renderer);
+    
+
+    /* Position the message */
+    /*SDL_SetRenderScale(renderer, scale, scale);
+    x_m = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(test_message)) / 1.2;
+    y_m = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) / 1.2;*/
+
+    /* Draw the message */
+    /*SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderDebugText(renderer, x, y, test_message);
+    SDL_RenderPresent(renderer);*/
+
+
 
     return SDL_APP_CONTINUE;
 }
