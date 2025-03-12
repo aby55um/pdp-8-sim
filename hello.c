@@ -9,12 +9,58 @@
   including commercial applications, and to alter it and redistribute it
   freely.
 */
+
+//todos
+//write functions for the application loop, instead of defining and calculating everything manually
+//import a text renderer library instead of using SDL3 default debug messages
+
 #define SDL_MAIN_USE_CALLBACKS 1  /* use the callbacks instead of main() */
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <stdlib.h>
 
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
+
+int my_pow(int base, int num){
+    if(num == 0) return 1;
+    if(num < 0) return 0;
+    int pow = 1;
+    while(num){
+        pow *= base;
+        num--;
+    }
+}
+
+int digit_num(int number){
+    int dig = 0;
+    if (number < 0) dig = 1;
+    while(number)
+    {
+        number /= 10;
+        dig++;
+    }
+    return dig;
+}
+
+int nth_digit(int num, int n){
+    return (num / my_pow(10,n)) % 10;
+}
+
+// not working
+void int_to_char_array(int num, char* ptr_arr_ch){
+    int arr_num[9];
+    for(int i=0;i<8;i++){
+        arr_num[7-i] = nth_digit(num, i);
+    }
+    char arr_ch[9];
+    for(int i=0;i<8;i++){
+        arr_ch[i] = arr_num[i] + 0x30;
+    }
+    arr_ch[8] = 0;
+    //ptr_arr_ch = malloc(9 * sizeof(char));
+    ptr_arr_ch = arr_ch;
+}
 
 /* This function runs once at startup. */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
@@ -40,7 +86,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
-    const char *title = "HAXX LABS";
+    const char *title = "PDP-8 Simulator";
     const char *reg = "Registers";
     const char *pc = "PC: ";
     const char *df = "DF: ";
@@ -49,15 +95,59 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     const char *mem = "Memory";
     const char *prog = "Program";
     const char *quit_message = "Press esc to quit";
-    int pcn = 0;
-    char pcnc = (char)pcn;
-    char *pcc = &pcnc;
+
+    int pc_number = 0;
+    int arr_pc_number[9];
+    for(int i=0;i<8;i++){
+        arr_pc_number[7-i] = nth_digit(pc_number, i);
+    }
+    char arr_pcc[9];
+    for(int i=0;i<8;i++){
+        arr_pcc[i] = arr_pc_number[i] + 0x30;
+    }
+    arr_pcc[8] = 0;
+    char *pcn = malloc(9 * sizeof(char));
+    pcn = arr_pcc;
+
+    int df_number = 0;
+    int arr[9];
+    for(int i=0;i<8;i++){
+        arr[7-i] = nth_digit(df_number, i);
+    }
+    char arr_c[9];
+    for(int i=0;i<8;i++){
+        arr_c[i] = arr[i] + 0x30;
+    }
+    arr_c[8] = 0;
+    char *dfn = malloc(9 * sizeof(char));
+    dfn = arr_c;
+
+    int acc_number = 0;
+    for(int i=0;i<8;i++){
+        arr[7-i] = nth_digit(acc_number, i);
+    }
+    for(int i=0;i<8;i++){
+        arr_c[i] = arr[i] + 0x30;
+    }
+    arr_c[8] = 0;
+    char *accn = malloc(9 * sizeof(char));
+    accn = arr_c;
+
+    int mq_number = 0;
+    for(int i=0;i<8;i++){
+        arr[7-i] = nth_digit(mq_number, i);
+    }
+    for(int i=0;i<8;i++){
+        arr_c[i] = arr[i] + 0x30;
+    }
+    char *mqn = malloc(9 * sizeof(char));
+    mqn = arr_c;
 
     int w = 0, h = 0;
     float x, y, x_r, y_r, x_m, y_m, x_p, y_p, x_q, y_q;
     float x_pc, y_pc, x_df, y_df, x_acc, y_acc, x_mq, y_mq;
     float x_pcn, y_pcn, x_dfn, y_dfn, x_accn, y_accn, x_mqn, y_mqn;
-    const float scale = 4.0f;
+    const float scale = 2.0f;
 
     /* Center the title and scale it up */
     SDL_GetRenderOutputSize(renderer, &w, &h);
@@ -71,20 +161,29 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     x_pc = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(pc)) * 0.8;
     y_pc = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) * 0.3;
 
+    x_pcn = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(pcn)) * 0.9;
+    y_pcn = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) * 0.3;
+
     x_df = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(df)) * 0.8;
     y_df = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) * 0.4;
 
-    x_acc = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(acc)) * 0.815;
+    x_dfn = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(df)) * 0.86;
+    y_dfn = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) * 0.4;
+
+    x_acc = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(acc)) * 0.805;
     y_acc = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) * 0.5;
+
+    x_accn = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(acc)) * 0.87;
+    y_accn = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) * 0.5;
 
     x_mq = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(mq)) * 0.797;
     y_mq = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) * 0.6;
 
+    x_mqn = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(mqn)) * 0.9;
+    y_mqn = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) * 0.6;
+
     x_m = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(mem)) * 0.1;
     y_m = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) * 0.17;
-
-    //x_q = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(quit_message)) * 0.1;
-    //y_q = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) * 0.17;
 
     x_p = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(prog)) * 0.4;
     y_p = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) * 0.17;
@@ -99,10 +198,13 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     SDL_RenderDebugText(renderer, x, y, title);
     SDL_RenderDebugText(renderer, x_r, y_r, reg);
     SDL_RenderDebugText(renderer, x_pc, y_pc, pc);
-    //SDL_RenderDebugText(renderer, x_pc, y_pc, pcc);
+    SDL_RenderDebugText(renderer, x_pcn, y_pcn, pcn);
     SDL_RenderDebugText(renderer, x_df, y_df, df);
+    SDL_RenderDebugText(renderer, x_dfn, y_dfn, dfn);
     SDL_RenderDebugText(renderer, x_acc, y_acc, acc);
+    SDL_RenderDebugText(renderer, x_accn, y_accn, accn);
     SDL_RenderDebugText(renderer, x_mq, y_mq, mq);
+    SDL_RenderDebugText(renderer, x_mqn, y_mqn, mqn);
     SDL_RenderDebugText(renderer, x_m, y_m, mem);
     SDL_RenderDebugText(renderer, x_p, y_p, prog);
     SDL_RenderDebugText(renderer, x_q, y_q, quit_message);
