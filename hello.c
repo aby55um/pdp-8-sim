@@ -83,6 +83,10 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     return SDL_APP_CONTINUE;
 }
 
+int pc_number = 0;
+char arr_pcc[9];
+char *pcn ;
+
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
@@ -96,17 +100,17 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     const char *prog = "Program";
     const char *quit_message = "Press esc to quit";
 
-    int pc_number = 0;
+    //int pc_number = 0;
     int arr_pc_number[9];
     for(int i=0;i<8;i++){
         arr_pc_number[7-i] = nth_digit(pc_number, i);
     }
-    char arr_pcc[9];
+    //char arr_pcc[9];
     for(int i=0;i<8;i++){
         arr_pcc[i] = arr_pc_number[i] + 0x30;
     }
     arr_pcc[8] = 0;
-    char *pcn = malloc(9 * sizeof(char));
+    pcn = malloc(9 * sizeof(char));
     pcn = arr_pcc;
 
     int df_number = 0;
