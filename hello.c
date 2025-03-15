@@ -85,7 +85,20 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 
 int pc_number = 0;
 char arr_pcc[9];
-char *pcn ;
+char *pcn;
+
+int df_number = 0;
+int arr[9];
+char arr_c[9];
+
+char *dfn;
+
+int acc_number = 0;
+char *accn;
+
+int mq_number = 0;
+char *mqn;
+
 
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
@@ -113,20 +126,20 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     pcn = malloc(9 * sizeof(char));
     pcn = arr_pcc;
 
-    int df_number = 0;
-    int arr[9];
+    //int df_number = 0;
+    //int arr[9];
     for(int i=0;i<8;i++){
         arr[7-i] = nth_digit(df_number, i);
     }
-    char arr_c[9];
+    //char arr_c[9];
     for(int i=0;i<8;i++){
         arr_c[i] = arr[i] + 0x30;
     }
     arr_c[8] = 0;
-    char *dfn = malloc(9 * sizeof(char));
+    dfn = malloc(9 * sizeof(char));
     dfn = arr_c;
 
-    int acc_number = 0;
+    //int acc_number = 0;
     for(int i=0;i<8;i++){
         arr[7-i] = nth_digit(acc_number, i);
     }
@@ -134,17 +147,17 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         arr_c[i] = arr[i] + 0x30;
     }
     arr_c[8] = 0;
-    char *accn = malloc(9 * sizeof(char));
+    accn = malloc(9 * sizeof(char));
     accn = arr_c;
 
-    int mq_number = 0;
+    //int mq_number = 0;
     for(int i=0;i<8;i++){
         arr[7-i] = nth_digit(mq_number, i);
     }
     for(int i=0;i<8;i++){
         arr_c[i] = arr[i] + 0x30;
     }
-    char *mqn = malloc(9 * sizeof(char));
+    mqn = malloc(9 * sizeof(char));
     mqn = arr_c;
 
     int w = 0, h = 0;
