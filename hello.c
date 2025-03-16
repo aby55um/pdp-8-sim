@@ -11,8 +11,9 @@
 */
 
 //todos
-//write functions for the application loop, instead of defining and calculating everything manually
+//write functions for the application loop, instead of defining and calculating everything manually - aka complete refactor of bad code
 //import a text renderer library instead of using SDL3 default debug messages
+//improve editor
 
 #define SDL_MAIN_USE_CALLBACKS 1  /* use the callbacks instead of main() */
 #include <SDL3/SDL.h>
@@ -68,6 +69,13 @@ void int_to_char_array(int num, char* ptr_arr_ch){
 
 int mem_value[256];
 
+char program[30][20];
+int cur_pos_x = 0;
+int cur_pos_y = 0;
+
+int counter = 0;
+int cursor_visible = 1;
+
 /* This function runs once at startup. */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
@@ -79,8 +87,24 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     for(int i=0;i<256;i++){
         mem_value[i] = 0;
     }
+    for(int i=0;i<30;i++){
+        for(int j=0;j<20;j++){
+            program[i][j] = ' ';
+        }
+    }
+    //program[cur_pos_x][cur_pos_y] = 0x7c;
     return SDL_APP_CONTINUE;
 }
+
+const char *title = "PDP-8 Simulator";
+const char *reg = "Registers";
+const char *pc = "PC: ";
+const char *df = "DF: ";
+const char *acc = "ACC: ";
+const char *mq = "MQ: ";
+const char *mem = "Memory";
+const char *prog = "Program";
+const char *quit_message = "Press esc to quit";
 
 /* This function runs when a new event (mouse input, keypresses, etc) occurs. */
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
@@ -88,6 +112,49 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_ESCAPE ||
         event->type == SDL_EVENT_QUIT) {
         return SDL_APP_SUCCESS;  /* end the program, reporting success to the OS. */
+    }
+    if (event->type == SDL_EVENT_KEY_DOWN && 
+        (event->key.key >= 0x00000030u && event->key.key <= 0x00000039u || event->key.key >= 0x00000061u && event->key.key <= 0x0000007au || event->key.key == SDLK_SPACE)){
+        program[cur_pos_x][cur_pos_y] = event->key.key;
+        if(cur_pos_x >= 29){
+            cur_pos_x = 0;
+            cur_pos_y += 1;
+        }
+        else {
+            cur_pos_x++;
+        }
+    }
+    if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_BACKSPACE){
+        program[cur_pos_x][cur_pos_y] = 0x20;
+        if(cur_pos_x >= 1){
+            cur_pos_x -= 1;
+        }
+    }
+    if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_LEFT){
+        if(cur_pos_x >= 1){
+            cur_pos_x -= 1;
+        }
+    }
+    if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_RIGHT){
+        if(cur_pos_x <= 28){
+            cur_pos_x += 1;
+        }
+    }
+    if (event->type == SDL_EVENT_KEY_UP && event->key.key == SDLK_UP){
+        if(cur_pos_y >= 1){
+            cur_pos_y -= 1;
+        }
+    }
+    if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_DOWN){
+        if(cur_pos_y <= 18){
+            cur_pos_y += 1;
+        }
+    }
+    if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_RETURN){
+        if(cur_pos_y <= 18){
+            cur_pos_y += 1;
+            cur_pos_x = 0;
+        }
     }
     return SDL_APP_CONTINUE;
 }
@@ -115,19 +182,16 @@ char *mem_n;
 
 char *mem_v;
 
+char *prog_string;
+
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
-    const char *title = "PDP-8 Simulator";
-    const char *reg = "Registers";
-    const char *pc = "PC: ";
-    const char *df = "DF: ";
-    const char *acc = "ACC: ";
-    const char *mq = "MQ: ";
-    const char *mem = "Memory";
-    const char *prog = "Program";
-    const char *quit_message = "Press esc to quit";
-
+    counter++;
+    if(counter >= 2000){
+        cursor_visible = -cursor_visible + 1;
+        counter = 0;
+    }
     //int pc_number = 0;
     int arr_pc_number[9];
     for(int i=0;i<8;i++){
@@ -192,6 +256,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     float x_pcn, y_pcn, x_dfn, y_dfn, x_accn, y_accn, x_mqn, y_mqn;
     float x_mem, y_mem;
     float x_memv, y_memv;
+    float x_prog, y_prog;
     const float scale = 2.0f;
 
     //Test
@@ -245,6 +310,10 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     x_memv = (w / scale) * 0.1;
     y_memv = (h / scale) * 0.23;
 
+    // needs to be corrected
+    x_prog = (w / scale) * 0.4;
+    y_prog = (h / scale) * 0.23;
+
     /* Draw the title */
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
@@ -296,6 +365,17 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         }
         SDL_RenderDebugText(renderer, x_memv, y_memv, mem_v);
         y_memv += (h / scale) * 0.038;
+    }
+    prog_string = malloc(300 * sizeof(char));
+    for(int k=0;k<20;k++){
+        for(int i=0;i<30;i++){
+            prog_string[i] = program[i][k];
+            if(cur_pos_x == i && cur_pos_y == k && cursor_visible){
+                prog_string[i] = 0x7c;
+            }
+        }
+        SDL_RenderDebugText(renderer, x_prog, y_prog, prog_string);
+        y_prog += (h / scale) * 0.038;
     }
     SDL_RenderPresent(renderer);
 
