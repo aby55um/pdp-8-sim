@@ -62,6 +62,8 @@ void int_to_char_array(int num, char* ptr_arr_ch){
     ptr_arr_ch = arr_ch;
 }
 
+int mem_value[256];
+
 /* This function runs once at startup. */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
@@ -69,6 +71,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     if (!SDL_CreateWindowAndRenderer("HAXX LABS", 800, 600, SDL_WINDOW_FULLSCREEN, &window, &renderer)) {
         SDL_Log("Couldn't create window and renderer: %s\n", SDL_GetError());
         return SDL_APP_FAILURE;
+    }
+    for(int i=0;i<256;i++){
+        mem_value[i] = 0;
     }
     return SDL_APP_CONTINUE;
 }
@@ -99,6 +104,12 @@ char *accn;
 int mq_number = 0;
 char *mqn;
 
+int mem_number = 0;
+int arr_mem_number[5];
+char arr_mem_char[5];
+char *mem_n;
+
+char *mem_v;
 
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
@@ -160,10 +171,23 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     mqn = malloc(9 * sizeof(char));
     mqn = arr_c;
 
+    mem_number = 0;
+    for(int i=0;i<4;i++){
+        arr_mem_number[3-i] = nth_digit(mem_number, i);
+    }
+    for(int i=0;i<4;i++){
+        arr_mem_char[i] = arr_mem_number[i] + 0x30;
+    }
+    arr_mem_char[4] = 0;
+    mem_n = malloc(5 * sizeof(char));
+    mem_n = arr_mem_char;
+
     int w = 0, h = 0;
     float x, y, x_r, y_r, x_m, y_m, x_p, y_p, x_q, y_q;
     float x_pc, y_pc, x_df, y_df, x_acc, y_acc, x_mq, y_mq;
     float x_pcn, y_pcn, x_dfn, y_dfn, x_accn, y_accn, x_mqn, y_mqn;
+    float x_mem, y_mem;
+    float x_memv, y_memv;
     const float scale = 2.0f;
 
     /* Center the title and scale it up */
@@ -202,11 +226,17 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     x_m = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(mem)) * 0.1;
     y_m = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) * 0.17;
 
-    x_p = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(prog)) * 0.4;
+    x_p = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(prog)) * 0.5;
     y_p = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) * 0.17;
 
     x_q = ((w / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(quit_message)) * 0.91;
     y_q = ((h / scale) - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) * 0.91;
+
+    x_mem = (w / scale) * 0.05;
+    y_mem = (h / scale) * 0.23; 
+
+    x_memv = (w / scale) * 0.1;
+    y_memv = (h / scale) * 0.23;
 
     /* Draw the title */
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -225,6 +255,48 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     SDL_RenderDebugText(renderer, x_m, y_m, mem);
     SDL_RenderDebugText(renderer, x_p, y_p, prog);
     SDL_RenderDebugText(renderer, x_q, y_q, quit_message);
+    //SDL_RenderDebugText(renderer, x_mem, y_mem, mem_n);
+    for(int i=0;i<17;i++){
+        SDL_RenderDebugText(renderer, x_mem, y_mem, mem_n);
+        y_mem += (h / scale) * 0.038;
+        mem_number += 8;        
+        for(int i=0;i<4;i++){
+        arr_mem_number[3-i] = nth_digit(mem_number, i);
+        }
+        for(int i=0;i<4;i++){
+            arr_mem_char[i] = arr_mem_number[i] + 0x30;
+        }
+        arr_mem_char[4] = 0;
+        mem_n = arr_mem_char;
+    }
+    /*for(int i=0;i<30;i++){
+        for(int j=0;j<2;j++){
+            arr[1-i] = nth_digit(mem_value[i],j);
+        }
+        for(int j=0;j<8;j++){
+            arr_c[j] = arr[j] + 0x30;
+        }
+        arr_c[2] = 0;
+        mem_v = malloc(3 * sizeof(char));
+        mem_v = arr_c;
+        SDL_RenderDebugText(renderer, x_memv + (w / scale) * 0.025 * (double)(i%8), y_memv + (h / scale) * 0.035 * (double)(int)(i/8), mem_v);
+    }*/
+    mem_v = malloc(1000 * sizeof(char));
+    for(int k=0;k<17;k++){
+        for(int i=0;i<8;i++){
+            for(int j=0;j<2;j++){
+                arr[1-i] = nth_digit(mem_value[i],j);
+            }
+            for(int j=0;j<2;j++){
+                arr_c[j] = arr[j] + 0x30;
+            }
+            mem_v[3*i] = arr_c[0];
+            mem_v[3*i+1] = arr_c[1];
+            mem_v[3*i+2] = 0x20;
+        }
+        SDL_RenderDebugText(renderer, x_memv, y_memv, mem_v);
+        y_memv += (h / scale) * 0.038;
+    }
     SDL_RenderPresent(renderer);
 
     return SDL_APP_CONTINUE;
