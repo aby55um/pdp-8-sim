@@ -1,1 +1,2 @@
-# haxx_lab
+# PDP 8 Simulator
+(under development)
