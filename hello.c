@@ -47,6 +47,10 @@ int nth_digit(int num, int n){
     return (num / my_pow(10,n)) % 10;
 }
 
+int nth_hex_digit(int num, int n){
+    return (num / my_pow(16,n)) % 16;
+}
+
 // not working
 void int_to_char_array(int num, char* ptr_arr_ch){
     int arr_num[9];
@@ -190,6 +194,9 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     float x_memv, y_memv;
     const float scale = 2.0f;
 
+    //Test
+    //mem_value[22] = 92;    
+
     /* Center the title and scale it up */
     SDL_GetRenderOutputSize(renderer, &w, &h);
     SDL_SetRenderScale(renderer, scale, scale);
@@ -269,26 +276,19 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         arr_mem_char[4] = 0;
         mem_n = arr_mem_char;
     }
-    /*for(int i=0;i<30;i++){
-        for(int j=0;j<2;j++){
-            arr[1-i] = nth_digit(mem_value[i],j);
-        }
-        for(int j=0;j<8;j++){
-            arr_c[j] = arr[j] + 0x30;
-        }
-        arr_c[2] = 0;
-        mem_v = malloc(3 * sizeof(char));
-        mem_v = arr_c;
-        SDL_RenderDebugText(renderer, x_memv + (w / scale) * 0.025 * (double)(i%8), y_memv + (h / scale) * 0.035 * (double)(int)(i/8), mem_v);
-    }*/
     mem_v = malloc(1000 * sizeof(char));
     for(int k=0;k<17;k++){
         for(int i=0;i<8;i++){
             for(int j=0;j<2;j++){
-                arr[1-i] = nth_digit(mem_value[i],j);
+                arr[1-j] = nth_hex_digit(mem_value[8*k + i],j);
             }
             for(int j=0;j<2;j++){
-                arr_c[j] = arr[j] + 0x30;
+                if(arr[j]<=10){
+                    arr_c[j] = arr[j] + 0x30;
+                }
+                else{
+                    arr_c[j] = arr[j] + 0x37;
+                }
             }
             mem_v[3*i] = arr_c[0];
             mem_v[3*i+1] = arr_c[1];
