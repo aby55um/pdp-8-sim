@@ -23,6 +23,8 @@
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 
+char *message = " ";
+
 int my_pow(int base, int num){
     if(num == 0) return 1;
     if(num < 0) return 0;
@@ -52,21 +54,6 @@ int nth_hex_digit(int num, int n){
     return (num / my_pow(16,n)) % 16;
 }
 
-// not working
-void int_to_char_array(int num, char* ptr_arr_ch){
-    int arr_num[9];
-    for(int i=0;i<8;i++){
-        arr_num[7-i] = nth_digit(num, i);
-    }
-    char arr_ch[9];
-    for(int i=0;i<8;i++){
-        arr_ch[i] = arr_num[i] + 0x30;
-    }
-    arr_ch[8] = 0;
-    //ptr_arr_ch = malloc(9 * sizeof(char));
-    ptr_arr_ch = arr_ch;
-}
-
 int mem_value[256];
 
 char program[30][20];
@@ -75,6 +62,26 @@ int cur_pos_y = 0;
 
 int counter = 0;
 int cursor_visible = 1;
+
+int check_if_command(char* input){
+    message = " ";
+    if (*input == 'a' && *(input + 1) == 'n' && *(input + 2) == 'd') return 0;
+    if (*input == 't' && *(input + 1) == 'a' && *(input + 2) == 'd') return 1;
+    if (*input == 'i' && *(input + 1) == 's' && *(input + 2) == 'z') return 2;
+    if (*input == 'd' && *(input + 1) == 'd' && *(input + 2) == 'a') return 3;
+    if (*input == 'j' && *(input + 1) == 'm' && *(input + 2) == 's') return 4;
+    if (*input == 'j' && *(input + 1) == 'm' && *(input + 2) == 'p') return 5;
+    message = "Syntax error";
+    return -1;
+}
+
+void read_command(){
+    for(int i=0;i<30;i++){
+        for(int j=0;j<20;j++){
+            
+        }
+    }
+}
 
 /* This function runs once at startup. */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
@@ -155,6 +162,17 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
             cur_pos_y += 1;
             cur_pos_x = 0;
         }
+    }
+    if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_LSHIFT){
+        char *input = malloc(600 * sizeof(char));
+        int k=0;
+        for(int i=0;i<20;i++){
+            for(int j=0;j<30;j++){
+                *(input + k) = program[j][i];
+                k++;
+            }
+        }
+        check_if_command(input);
     }
     return SDL_APP_CONTINUE;
 }
@@ -257,6 +275,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     float x_mem, y_mem;
     float x_memv, y_memv;
     float x_prog, y_prog;
+    float x_message, y_message;
     const float scale = 2.0f;
 
     //Test
@@ -314,6 +333,9 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     x_prog = (w / scale) * 0.4;
     y_prog = (h / scale) * 0.23;
 
+    x_message = (w / scale) * 0.8;
+    y_message = (h / scale) * 0.8;
+
     /* Draw the title */
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
@@ -331,6 +353,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     SDL_RenderDebugText(renderer, x_m, y_m, mem);
     SDL_RenderDebugText(renderer, x_p, y_p, prog);
     SDL_RenderDebugText(renderer, x_q, y_q, quit_message);
+    SDL_RenderDebugText(renderer, x_message, y_message, message);
     //SDL_RenderDebugText(renderer, x_mem, y_mem, mem_n);
     for(int i=0;i<17;i++){
         SDL_RenderDebugText(renderer, x_mem, y_mem, mem_n);
