@@ -54,6 +54,10 @@ int nth_hex_digit(int num, int n){
     return (num / my_pow(16,n)) % 16;
 }
 
+int nth_duodec_digit(int num, int n){
+    return (num / my_pow(12,n)) % 12;
+}
+
 int mem_value[256];
 
 char program[30][20];
@@ -112,6 +116,7 @@ const char *mq = "MQ: ";
 const char *mem = "Memory";
 const char *prog = "Program";
 const char *quit_message = "Press esc to quit";
+const char *compile_message = "Press LSHIFT to compile";
 
 /* This function runs when a new event (mouse input, keypresses, etc) occurs. */
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
@@ -276,6 +281,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     float x_memv, y_memv;
     float x_prog, y_prog;
     float x_message, y_message;
+    float x_compile_help, y_compile_help;
     const float scale = 2.0f;
 
     //Test
@@ -336,6 +342,9 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     x_message = (w / scale) * 0.8;
     y_message = (h / scale) * 0.8;
 
+    x_compile_help = (w / scale) * 0.755;
+    y_compile_help = (h / scale) * 0.85;
+
     /* Draw the title */
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
@@ -354,6 +363,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     SDL_RenderDebugText(renderer, x_p, y_p, prog);
     SDL_RenderDebugText(renderer, x_q, y_q, quit_message);
     SDL_RenderDebugText(renderer, x_message, y_message, message);
+    SDL_RenderDebugText(renderer, x_compile_help, y_compile_help, compile_message);
     //SDL_RenderDebugText(renderer, x_mem, y_mem, mem_n);
     for(int i=0;i<17;i++){
         SDL_RenderDebugText(renderer, x_mem, y_mem, mem_n);
@@ -372,7 +382,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     for(int k=0;k<17;k++){
         for(int i=0;i<8;i++){
             for(int j=0;j<2;j++){
-                arr[1-j] = nth_hex_digit(mem_value[8*k + i],j);
+                arr[1-j] = nth_duodec_digit(mem_value[8*k + i],j);
             }
             for(int j=0;j<2;j++){
                 if(arr[j]<=10){
