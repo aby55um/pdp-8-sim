@@ -13,7 +13,8 @@
 //todos
 //write functions for the application loop, instead of defining and calculating everything manually - aka complete refactor of bad code
 //import a text renderer library instead of using SDL3 default debug messages
-//improve editor
+//improve and debug the editor
+//remove bugs in number handling in the first six commands
 
 #define SDL_MAIN_USE_CALLBACKS 1  /* use the callbacks instead of main() */
 #include <SDL3/SDL.h>
@@ -58,6 +59,18 @@ int nth_duodec_digit(int num, int n){
     return (num / my_pow(12,n)) % 12;
 }
 
+char command_names[28][3] = {
+                            "and","tad","isz","dca","jms","jmp",
+                            "cla","cll","cma","cml","iac","rar","ral","rtr","rtl","bsw",
+                            "sma","sza","snl","spa","sna","szl",
+                            "osr","hlt",
+                            "mqa","mql"
+                        };
+
+int command_numbers[28] = {
+    0,512,1024,1536,2048,2560,3712,3648,3616,3600,3585,3592,3588,3594,3590,3586,3904,3872,3856,3912,3880,3864,3844,3842,3905,3857
+};
+
 int mem_value[256];
 
 char program[30][20];
@@ -67,14 +80,15 @@ int cur_pos_y = 0;
 int counter = 0;
 int cursor_visible = 1;
 
+int test;
+
 int check_if_command(char* input){
     message = " ";
-    if (*input == 'a' && *(input + 1) == 'n' && *(input + 2) == 'd') return 0;
-    if (*input == 't' && *(input + 1) == 'a' && *(input + 2) == 'd') return 1;
-    if (*input == 'i' && *(input + 1) == 's' && *(input + 2) == 'z') return 2;
-    if (*input == 'd' && *(input + 1) == 'd' && *(input + 2) == 'a') return 3;
-    if (*input == 'j' && *(input + 1) == 'm' && *(input + 2) == 's') return 4;
-    if (*input == 'j' && *(input + 1) == 'm' && *(input + 2) == 'p') return 5;
+    for(int i=0;i<26;i++){
+        if(*input == command_names[i][0] && *(input + 1) == command_names[i][1] && *(input + 2) == command_names[i][2]){
+            return command_numbers[i];
+        }
+    }
     message = "Syntax error";
     return -1;
 }
@@ -177,7 +191,73 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
                 k++;
             }
         }
-        check_if_command(input);
+        k=0;
+        int l=0;
+        for(int i=0;i<400;i++){
+            mem_value[i]=0;
+        }
+        while(k<600){
+            mem_value[l] = 0;
+            while(*(input+k)==0x20){
+                k++;
+            }
+            if(k<600){
+                test = check_if_command(input+k);
+                if(test == -1){
+                    break;
+                }
+                if(test < 3000){
+                    k+=3;
+                    while(*(input+k)==0x20){
+                        k++;
+                    }
+                    if(*(input+k)=='i' || *(input+k)=='z'){
+                        if(*(input+k)=='i'){
+                            mem_value[l] += 256;
+                        }
+                        else if(*(input+k)=='z'){
+                            mem_value[l] += 128;
+                        }
+                        k++;
+                        while(*(input+k)==0x20){
+                            k++;
+                        }
+                    }
+                    if(*(input+k+1)==0x20 && *(input+k)>=0x30 && *(input+k)<=0x39){
+                        mem_value[l]+=*(input+k)-0x30;
+                        k++;
+                    }
+                    else if(*(input+k+2)==0x20 &&
+                        *(input+k)>=0x30 && *(input+k)<=0x39 &&
+                        *(input+k+1)>=0x30 && *(input+k+1)<=0x39){
+                        mem_value[l]+=(*(input+k)-0x30)*10;
+                        mem_value[l]+=*(input+k+1)-0x30;
+                        k+=2;
+                    }
+                    else if(*(input+k+3)==0x20 &&
+                        *(input+k)==0x31 &&
+                        ((*(input+k+1)==0x32 && *(input+k+2)<=0x37 && *(input+k+2)>=0x30) ||
+                            (*(input+k+1)>=0x30 && *(input+k+1)<=0x31 && *(input+k+2)>=0x30 && *(input+k+2)<=0x39))
+                        ){
+                        mem_value[l]+=(*(input+k)-0x30)*100;
+                        mem_value[l]+=(*(input+k+1)-0x30)*10;
+                        mem_value[l]+=*(input+k+2)-0x30;
+                        k+=3;
+                    }
+                    else{
+                        message = "Syntax error";
+                        break;
+                    }
+
+                }
+                else{
+                    k+=3;
+                }
+                mem_value[l] += test;
+                l++;
+            }
+        }
+        //check_if_command(input);
     }
     return SDL_APP_CONTINUE;
 }
@@ -336,7 +416,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     y_memv = (h / scale) * 0.23;
 
     // needs to be corrected
-    x_prog = (w / scale) * 0.4;
+    x_prog = (w / scale) * 0.45;
     y_prog = (h / scale) * 0.23;
 
     x_message = (w / scale) * 0.8;
@@ -381,20 +461,21 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     mem_v = malloc(1000 * sizeof(char));
     for(int k=0;k<17;k++){
         for(int i=0;i<8;i++){
-            for(int j=0;j<2;j++){
-                arr[1-j] = nth_duodec_digit(mem_value[8*k + i],j);
+            for(int j=0;j<3;j++){
+                arr[2-j] = nth_hex_digit(mem_value[8*k + i],j);
             }
-            for(int j=0;j<2;j++){
-                if(arr[j]<=10){
+            for(int j=0;j<3;j++){
+                if(arr[j]<10){
                     arr_c[j] = arr[j] + 0x30;
                 }
                 else{
                     arr_c[j] = arr[j] + 0x37;
                 }
             }
-            mem_v[3*i] = arr_c[0];
-            mem_v[3*i+1] = arr_c[1];
-            mem_v[3*i+2] = 0x20;
+            mem_v[4*i] = arr_c[0];
+            mem_v[4*i+1] = arr_c[1];
+            mem_v[4*i+2] = arr_c[2];
+            mem_v[4*i+3] = 0x20;
         }
         SDL_RenderDebugText(renderer, x_memv, y_memv, mem_v);
         y_memv += (h / scale) * 0.038;
