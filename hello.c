@@ -9,12 +9,16 @@
   including commercial applications, and to alter it and redistribute it
   freely.
 */
+// Pre-release version
 
 //todos
 //write functions for the application loop, instead of defining and calculating everything manually - aka complete refactor of bad code
 //import a text renderer library instead of using SDL3 default debug messages
 //improve and debug the editor
-//remove bugs in number handling in the first six commands
+//use the math libraries instead of the custom ones defined below
+//improve and optimize the overall trashy code
+//solve ACC overflow and implement LINK (bit) register
+//implement indirect addressing, macros and microcoded instructions
 
 #define SDL_MAIN_USE_CALLBACKS 1  /* use the callbacks instead of main() */
 #include <SDL3/SDL.h>
@@ -25,6 +29,85 @@ static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 
 char *message = " ";
+
+int pc_number = 0;
+int arr_pc_number[9];
+char arr_pcc[9];
+char *pcn;
+
+int df_number = 0;
+int arr_df_number[9];
+char arr_dfc[9];
+char *dfn;
+
+int arr[9];
+char arr_c[9];
+
+int acc_number = 0;
+int arr_acc_number[9];
+char arr_accc[9];
+char *accn;
+
+int mq_number = 0;
+int arr_mq_number[9];
+char arr_mqc[9];
+char *mqn;
+
+int mem_number = 0;
+int arr_mem_number[5];
+char arr_mem_char[5];
+char *mem_n;
+
+char *mem_v;
+
+char *prog_string;
+
+char command_names[26][3] = {
+                            "and","tad","isz","dca","jms","jmp",
+                            "cla","cll","cma","cml","iac","rar","ral","rtr","rtl","bsw",
+                            "sma","sza","snl","spa","sna","szl",
+                            "osr","hlt",
+                            "mqa","mql"
+                        };
+
+int command_numbers[26] = {
+    0,512,1024,1536,2048,2560,3712,3648,3616,3600,3585,3592,3588,3594,3590,3586,3904,3872,3856,3912,3880,3864,3844,3842,3905,3857
+};
+
+int mem_value[256];
+
+char program[30][20];
+int cur_pos_x = 0;
+int cur_pos_y = 0;
+
+int counter = 0;
+int cursor_visible = 1;
+
+int test;
+int compile_error = 0;
+int run = 1;
+
+float x, y, x_r, y_r, x_m, y_m, x_p, y_p, x_q, y_q;
+float x_pc, y_pc, x_df, y_df, x_acc, y_acc, x_mq, y_mq;
+float x_pcn, y_pcn, x_dfn, y_dfn, x_accn, y_accn, x_mqn, y_mqn;
+float x_mem, y_mem;
+float x_memv, y_memv;
+float x_prog, y_prog;
+float x_message, y_message;
+float x_compile_help, y_compile_help;
+float x_step_help, y_step_help;
+
+const char *title = "PDP-8 Simulator";
+const char *reg = "Registers";
+const char *pc = "PC: ";
+const char *df = "DF: ";
+const char *acc = "ACC: ";
+const char *mq = "MQ: ";
+const char *mem = "Memory";
+const char *prog = "Program";
+const char *quit_message = "Press esc to quit";
+const char *compile_message = "Press LSHIFT to compile";
+const char *step_message = "Press RSHIFT to step";
 
 int my_pow(int base, int num){
     if(num == 0) return 1;
@@ -59,28 +142,9 @@ int nth_duodec_digit(int num, int n){
     return (num / my_pow(12,n)) % 12;
 }
 
-char command_names[28][3] = {
-                            "and","tad","isz","dca","jms","jmp",
-                            "cla","cll","cma","cml","iac","rar","ral","rtr","rtl","bsw",
-                            "sma","sza","snl","spa","sna","szl",
-                            "osr","hlt",
-                            "mqa","mql"
-                        };
-
-int command_numbers[28] = {
-    0,512,1024,1536,2048,2560,3712,3648,3616,3600,3585,3592,3588,3594,3590,3586,3904,3872,3856,3912,3880,3864,3844,3842,3905,3857
-};
-
-int mem_value[256];
-
-char program[30][20];
-int cur_pos_x = 0;
-int cur_pos_y = 0;
-
-int counter = 0;
-int cursor_visible = 1;
-
-int test;
+int nth_binary_digit(int num, int n){
+    return (num / my_pow(2,n)) % 2;
+}
 
 int check_if_command(char* input){
     message = " ";
@@ -93,11 +157,54 @@ int check_if_command(char* input){
     return -1;
 }
 
-void read_command(){
-    for(int i=0;i<30;i++){
-        for(int j=0;j<20;j++){
-            
+int runtime_check_if_command(int command){
+    for(int i=0;i<6;i++){
+        if(command >= command_numbers[i] && command <= command_numbers[i] + 384){
+            return i;
         }
+    }
+    for(int i=6;i<26;i++){
+        if(command == command_numbers[i]){
+            return i;
+        }
+    }
+    return -1;
+}
+
+void execute_command(int com){
+    int memory = 0;
+    if(mem_value[pc_number] >= command_numbers[com] + 256) memory -= 256;
+    else if(mem_value[pc_number] >= command_numbers[com] + 128) memory -= 128;
+    memory += mem_value[pc_number] - command_numbers[com];
+    int n=0;
+    switch(com){
+    case 0:
+        for(int i=0;i<12;i++){
+            if(nth_binary_digit(acc_number,i) == 1 && nth_digit(memory,i) == 1) n += my_pow(2,i);
+        }
+        acc_number = n;
+        pc_number++;
+        break;
+    case 1:
+        acc_number += mem_value[memory];
+        pc_number++;
+        break;
+    case 2:
+        mem_value[memory]++;
+        pc_number++;
+        break;
+    case 3:
+        mem_value[memory] = acc_number;
+        acc_number = 0;
+        pc_number++;
+        break;
+    case 4:
+        mem_value[memory] = pc_number;
+        pc_number = memory + 1;
+        break;
+    case 5:
+        pc_number = memory;
+        break;
     }
 }
 
@@ -117,20 +224,15 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
             program[i][j] = ' ';
         }
     }
+
+    //Test
+    //acc_number = 1;
+    //mem_value[22] = 92; 
+    //mem_value[22] = 1;
+
     //program[cur_pos_x][cur_pos_y] = 0x7c;
     return SDL_APP_CONTINUE;
 }
-
-const char *title = "PDP-8 Simulator";
-const char *reg = "Registers";
-const char *pc = "PC: ";
-const char *df = "DF: ";
-const char *acc = "ACC: ";
-const char *mq = "MQ: ";
-const char *mem = "Memory";
-const char *prog = "Program";
-const char *quit_message = "Press esc to quit";
-const char *compile_message = "Press LSHIFT to compile";
 
 /* This function runs when a new event (mouse input, keypresses, etc) occurs. */
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
@@ -150,6 +252,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
             cur_pos_x++;
         }
     }
+
     if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_BACKSPACE){
         program[cur_pos_x][cur_pos_y] = 0x20;
         if(cur_pos_x >= 1){
@@ -182,7 +285,13 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
             cur_pos_x = 0;
         }
     }
+
     if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_LSHIFT){
+        pc_number = 0;
+        df_number = 0;
+        acc_number = 0;
+        mq_number = 0;
+
         char *input = malloc(600 * sizeof(char));
         int k=0;
         for(int i=0;i<20;i++){
@@ -197,95 +306,78 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
             mem_value[i]=0;
         }
         while(k<600){
-            mem_value[l] = 0;
-            while(*(input+k)==0x20){
-                k++;
-            }
-            if(k<600){
-                test = check_if_command(input+k);
-                if(test == -1){
-                    break;
+                mem_value[l] = 0;
+                while(*(input+k)==0x20){
+                    k++;
                 }
-                if(test < 3000){
-                    k+=3;
-                    while(*(input+k)==0x20){
-                        k++;
+                if(k<600){
+                    test = check_if_command(input+k);
+                    if(test == -1){
+                        break;
                     }
-                    if(*(input+k)=='i' || *(input+k)=='z'){
-                        if(*(input+k)=='i'){
-                            mem_value[l] += 256;
-                        }
-                        else if(*(input+k)=='z'){
-                            mem_value[l] += 128;
-                        }
-                        k++;
+                    if(test < 3000){
+                        k+=3;
                         while(*(input+k)==0x20){
                             k++;
                         }
-                    }
-                    if(*(input+k+1)==0x20 && *(input+k)>=0x30 && *(input+k)<=0x39){
-                        mem_value[l]+=*(input+k)-0x30;
-                        k++;
-                    }
-                    else if(*(input+k+2)==0x20 &&
-                        *(input+k)>=0x30 && *(input+k)<=0x39 &&
-                        *(input+k+1)>=0x30 && *(input+k+1)<=0x39){
-                        mem_value[l]+=(*(input+k)-0x30)*10;
-                        mem_value[l]+=*(input+k+1)-0x30;
-                        k+=2;
-                    }
-                    else if(*(input+k+3)==0x20 &&
-                        *(input+k)==0x31 &&
-                        ((*(input+k+1)==0x32 && *(input+k+2)<=0x37 && *(input+k+2)>=0x30) ||
-                            (*(input+k+1)>=0x30 && *(input+k+1)<=0x31 && *(input+k+2)>=0x30 && *(input+k+2)<=0x39))
-                        ){
-                        mem_value[l]+=(*(input+k)-0x30)*100;
-                        mem_value[l]+=(*(input+k+1)-0x30)*10;
-                        mem_value[l]+=*(input+k+2)-0x30;
-                        k+=3;
+                        if(*(input+k)=='i' || *(input+k)=='z'){
+                            if(*(input+k)=='i'){
+                                mem_value[l] += 256;
+                            }
+                            else if(*(input+k)=='z'){
+                                mem_value[l] += 128;
+                            }
+                            k++;
+                            while(*(input+k)==0x20){
+                                k++;
+                            }
+                        }
+                        if(*(input+k+1)==0x20 && *(input+k)>=0x30 && *(input+k)<=0x39){
+                            mem_value[l]+=*(input+k)-0x30;
+                            k++;
+                        }
+                        else if(*(input+k+2)==0x20 &&
+                            *(input+k)>=0x30 && *(input+k)<=0x39 &&
+                            *(input+k+1)>=0x30 && *(input+k+1)<=0x39){
+                            mem_value[l]+=(*(input+k)-0x30)*10;
+                            mem_value[l]+=*(input+k+1)-0x30;
+                            k+=2;
+                        }
+                        else if(*(input+k+3)==0x20 &&
+                            *(input+k)==0x31 &&
+                            ((*(input+k+1)==0x32 && *(input+k+2)<=0x37 && *(input+k+2)>=0x30) ||
+                                (*(input+k+1)>=0x30 && *(input+k+1)<=0x31 && *(input+k+2)>=0x30 && *(input+k+2)<=0x39))
+                            ){
+                            mem_value[l]+=(*(input+k)-0x30)*100;
+                            mem_value[l]+=(*(input+k+1)-0x30)*10;
+                            mem_value[l]+=*(input+k+2)-0x30;
+                            k+=3;
+                        }
+                        else{
+                            compile_error = 1;
+                            message = "Syntax error";
+                            break;
+                        }
+
                     }
                     else{
-                        message = "Syntax error";
-                        break;
+                        if(test == 3842) break;
+                        k+=3;
                     }
-
+                    mem_value[l] += test;
+                    l++;
                 }
-                else{
-                    k+=3;
-                }
-                mem_value[l] += test;
-                l++;
-            }
+                
         }
-        //check_if_command(input);
     }
+
+    if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_RSHIFT){
+        int comm = runtime_check_if_command(mem_value[pc_number]);
+        execute_command(comm);
+    }
+
     return SDL_APP_CONTINUE;
 }
-
-int pc_number = 0;
-char arr_pcc[9];
-char *pcn;
-
-int df_number = 0;
-int arr[9];
-char arr_c[9];
-
-char *dfn;
-
-int acc_number = 0;
-char *accn;
-
-int mq_number = 0;
-char *mqn;
-
-int mem_number = 0;
-int arr_mem_number[5];
-char arr_mem_char[5];
-char *mem_n;
-
-char *mem_v;
-
-char *prog_string;
 
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
@@ -296,7 +388,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         counter = 0;
     }
     //int pc_number = 0;
-    int arr_pc_number[9];
+    //int arr_pc_number[9];
     for(int i=0;i<8;i++){
         arr_pc_number[7-i] = nth_digit(pc_number, i);
     }
@@ -308,39 +400,37 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     pcn = malloc(9 * sizeof(char));
     pcn = arr_pcc;
 
-    //int df_number = 0;
-    //int arr[9];
     for(int i=0;i<8;i++){
-        arr[7-i] = nth_digit(df_number, i);
+        arr_df_number[7-i] = nth_digit(df_number, i);
     }
     //char arr_c[9];
     for(int i=0;i<8;i++){
-        arr_c[i] = arr[i] + 0x30;
+        arr_dfc[i] = arr_df_number[i] + 0x30;
     }
-    arr_c[8] = 0;
+    arr_dfc[8] = 0;
     dfn = malloc(9 * sizeof(char));
-    dfn = arr_c;
+    dfn = arr_dfc;
 
     //int acc_number = 0;
     for(int i=0;i<8;i++){
-        arr[7-i] = nth_digit(acc_number, i);
+        arr_acc_number[7-i] = nth_digit(acc_number, i);
     }
     for(int i=0;i<8;i++){
-        arr_c[i] = arr[i] + 0x30;
+        arr_accc[i] = arr_acc_number[i] + 0x30;
     }
-    arr_c[8] = 0;
+    arr_accc[8] = 0;
     accn = malloc(9 * sizeof(char));
-    accn = arr_c;
+    accn = arr_accc;
 
     //int mq_number = 0;
     for(int i=0;i<8;i++){
-        arr[7-i] = nth_digit(mq_number, i);
+        arr_mq_number[7-i] = nth_digit(mq_number, i);
     }
     for(int i=0;i<8;i++){
-        arr_c[i] = arr[i] + 0x30;
+        arr_mqc[i] = arr_mq_number[i] + 0x30;
     }
     mqn = malloc(9 * sizeof(char));
-    mqn = arr_c;
+    mqn = arr_mqc;
 
     mem_number = 0;
     for(int i=0;i<4;i++){
@@ -354,18 +444,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     mem_n = arr_mem_char;
 
     int w = 0, h = 0;
-    float x, y, x_r, y_r, x_m, y_m, x_p, y_p, x_q, y_q;
-    float x_pc, y_pc, x_df, y_df, x_acc, y_acc, x_mq, y_mq;
-    float x_pcn, y_pcn, x_dfn, y_dfn, x_accn, y_accn, x_mqn, y_mqn;
-    float x_mem, y_mem;
-    float x_memv, y_memv;
-    float x_prog, y_prog;
-    float x_message, y_message;
-    float x_compile_help, y_compile_help;
-    const float scale = 2.0f;
-
-    //Test
-    //mem_value[22] = 92;    
+    const float scale = 2.0f;  
 
     /* Center the title and scale it up */
     SDL_GetRenderOutputSize(renderer, &w, &h);
@@ -415,15 +494,17 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     x_memv = (w / scale) * 0.1;
     y_memv = (h / scale) * 0.23;
 
-    // needs to be corrected
     x_prog = (w / scale) * 0.45;
     y_prog = (h / scale) * 0.23;
 
     x_message = (w / scale) * 0.8;
-    y_message = (h / scale) * 0.8;
+    y_message = (h / scale) * 0.7;
 
     x_compile_help = (w / scale) * 0.755;
-    y_compile_help = (h / scale) * 0.85;
+    y_compile_help = (h / scale) * 0.8;
+
+    x_step_help = (w / scale) * 0.755;
+    y_step_help = (h / scale) * 0.85;
 
     /* Draw the title */
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -444,6 +525,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     SDL_RenderDebugText(renderer, x_q, y_q, quit_message);
     SDL_RenderDebugText(renderer, x_message, y_message, message);
     SDL_RenderDebugText(renderer, x_compile_help, y_compile_help, compile_message);
+    SDL_RenderDebugText(renderer, x_step_help, y_step_help, step_message);
     //SDL_RenderDebugText(renderer, x_mem, y_mem, mem_n);
     for(int i=0;i<17;i++){
         SDL_RenderDebugText(renderer, x_mem, y_mem, mem_n);
